@@ -34,7 +34,7 @@ class ScanController extends GetxController {
 
       // 2. Kirim ke API
       final response = await http.post(
-        Uri.parse('http://10.0.2.2:8000/predict'), // Ganti dengan URL API Anda
+        Uri.parse('http://192.168.18.19:8000/predict'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'pixels': pixels}),
       );
