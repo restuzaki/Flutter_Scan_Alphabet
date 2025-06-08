@@ -1,5 +1,6 @@
 import 'package:get/get.dart';
 import 'package:scan_alphabet/app/modules/scan/bindings/scan_binding.dart';
+import 'package:scan_alphabet/app/modules/scan/views/result_view.dart';
 import 'package:scan_alphabet/app/modules/scan/views/scan_view.dart';
 
 import '../modules/home/bindings/home_binding.dart';
@@ -22,6 +23,10 @@ class AppPages {
       name: _Paths.MENU_SCAN,
       page: () => ScanView(),
       binding: ScannerBinding(),
+    ),
+    GetPage(
+      name: _Paths.RESULT,
+      page: () => ResultView(),
     ),
   ];
 }

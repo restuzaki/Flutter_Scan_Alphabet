@@ -1,51 +1,65 @@
+import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:mobile_scanner/mobile_scanner.dart';
-import 'package:scan_alphabet/app/model/api_makanan.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:http/http.dart' as http;
 
 class ScanController extends GetxController {
-  final MobileScannerController cameraController = MobileScannerController();
-  var barcodeResult = "Scan a product".obs;
-  var productData = {}.obs;
+  final ImagePicker _picker = ImagePicker();
+  Rx<File?> imageFile = Rx<File?>(null);
+  RxBool isLoading = false.obs;
+  RxString prediction = ''.obs;
+  RxList<double> probabilities = <double>[].obs;
 
-  void onDetect(BarcodeCapture barcode) async {
-    if (barcode.barcodes.isNotEmpty) {
-      final String scannedBarcode = barcode.barcodes.first.rawValue ?? "";
-      barcodeResult.value = scannedBarcode;
-      fetchProductData(scannedBarcode);
+  Future<void> pickImage() async {
+    try {
+      final XFile? image = await _picker.pickImage(source: ImageSource.camera);
+      if (image != null) {
+        imageFile.value = File(image.path);
+        await _processImage(File(image.path));
+      }
+    } catch (e) {
+      Get.snackbar('Error', 'Gagal mengambil gambar: ${e.toString()}');
     }
   }
 
-  Future<void> fetchProductData(String barcode) async {
-    ApiMakananService apiService = ApiMakananService();
-    Map<String, dynamic>? data = await apiService.getProductData(barcode);
+  Future<void> _processImage(File image) async {
+    try {
+      isLoading.value = true;
 
-    if (data != null && data['product'] != null) {
-      productData.value = data['product'];
-      checkSugarIntake(productData['nutriments']['sugars_100g'] ?? 0.0);
-    } else {
-      Get.snackbar("Error", "Produk tidak ditemukan");
+      // 1. Konversi gambar ke 28x28 grayscale & flatten
+      // [Implementasi preprocessing gambar disesuaikan dengan kebutuhan model]
+      List<double> pixels = await _convertImageToPixels(image);
+
+      // 2. Kirim ke API
+      final response = await http.post(
+        Uri.parse('http://10.0.2.2:8000/predict'), // Ganti dengan URL API Anda
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'pixels': pixels}),
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        prediction.value = data['prediction'];
+        probabilities.value = List<double>.from(data['probabilities']);
+        Get.toNamed('/result');
+      } else {
+        throw Exception('API Error: ${response.statusCode}');
+      }
+    } catch (e) {
+      Get.snackbar('Error', 'Prediksi gagal: ${e.toString()}');
+    } finally {
+      isLoading.value = false;
     }
   }
 
-  void checkSugarIntake(double sugarAmount) {
-    const double MAX_SUGAR_LIMIT = 25.0;
-
-    Get.defaultDialog(
-      title: "Hasil Scan",
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text("Nama Produk: ${productData['product_name'] ?? 'Unknown'}"),
-          Text("Kandungan Gula: ${sugarAmount} g/100g"),
-          const SizedBox(height: 10),
-          sugarAmount < MAX_SUGAR_LIMIT
-              ? const Icon(Icons.check_circle, color: Colors.green, size: 50)
-              : const Icon(Icons.cancel, color: Colors.red, size: 50),
-        ],
-      ),
-      textConfirm: "OK",
-      onConfirm: () => Get.toNamed('/home'),
-    );
+  Future<List<double>> _convertImageToPixels(File image) async {
+    // Implementasi konversi gambar ke array 784 pixel
+    // Contoh sederhana (harus disesuaikan dengan preprocessing model Anda):
+    // 1. Resize ke 28x28
+    // 2. Konversi ke grayscale
+    // 3. Normalisasi nilai pixel
+    return List<double>.filled(784, 0.0); // Ganti dengan implementasi aktual
   }
 }
