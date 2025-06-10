@@ -118,7 +118,7 @@ def predict_single_sample_log(sample, means, variances, p, classes):
         log_likelihood = np.sum(np.log(likelihood))
 
         log_p = np.log(p[i] + 1e-300)
-        
+            
         class_probabilities[i] = log_likelihood + log_p
     
     # From log to normalized probability
@@ -133,7 +133,7 @@ def predict_single_sample_log(sample, means, variances, p, classes):
         # If all probabilities are 0, use uniform distribution
         class_probabilities = np.ones(total_classes) / total_classes
     
-    return class_probabilities
+    return class_probabilities / np.sum(class_probabilities)
 # -----------------------------------------------------------
 
 # Predict dataset with probability
@@ -147,8 +147,8 @@ def predict_multiple_sample(feature_test, means, variances, p, classes):
         
         class_probabilities = predict_single_sample_log(sample, means, variances, p, classes)
         
-        if np.sum(class_probabilities) > 0:
-            class_probabilities = class_probabilities / np.sum(class_probabilities)
+        # if np.sum(class_probabilities) > 0:
+        #     class_probabilities = class_probabilities / np.sum(class_probabilities)
         
         probabilities.append(class_probabilities)
         
@@ -200,4 +200,4 @@ def main_2():
     
     return accuracy, predictions, probabilities
 
-main_2()
+# main_2()
